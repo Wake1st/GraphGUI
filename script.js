@@ -1,8 +1,8 @@
 let vertices = [];
 let edges = [];
 
-let vertexOuterRadius = 80;
-let vertexInnerRadius = 60;
+let vertexOuterRadius = 60;
+let vertexInnerRadius = 45;
 let vertexDiameter = vertexOuterRadius + vertexInnerRadius;
 let vertexEdgeThickness = vertexOuterRadius - vertexInnerRadius;
 let edgeThickness = 10;
@@ -24,31 +24,35 @@ function draw() {
   background('rgba(40,250,240,0.4)');
   
   if (isDrawing) {
-    strokeWeight(edgeThickness);
+    drawEdge({
+      head: { x: headNodeDrawing.x, y: headNodeDrawing.y},
+      tail: { x: mouseX, y: mouseY}
+    }, true);
 
-    let x1 = headNodeDrawing.x;
-    let y1 = headNodeDrawing.y;
-    let x2 = mouseX;
-    let y2 = mouseY;
+    // strokeWeight(edgeThickness);
+
+    // let x1 = headNodeDrawing.x;
+    // let y1 = headNodeDrawing.y;
+    // let x2 = mouseX;
+    // let y2 = mouseY;
     
-    line(x1, y1, x2, y2);
+    // line(x1, y1, x2, y2);
 
-    let d = dist(x1, y1, x2, y2);
+    // let d = dist(x1, y1, x2, y2);
 
-    // Let's write d along the line we are drawing!
-    push();
-    translate((x1 + x2) / 2, (y1 + y2) / 2);
-    rotate(atan2(y2 - y1, x2 - x1));
-    pop();
+    // // Let's write d along the line we are drawing!
+    // push();
+    // translate((x1 + x2) / 2, (y1 + y2) / 2);
+    // rotate(atan2(y2 - y1, x2 - x1));
+    // pop();
   }
+
 
   edges.forEach(edge => drawEdge(edge));
   vertices.forEach(node => drawNode(node));
 }
 
 function mouseClicked() {
-  console.log(isDrawing);
-
   if (isDrawing || isDragging) {
     isDrawing = false;
     isDragging = false;
@@ -68,24 +72,9 @@ function mousePressed() {
     headNodeDrawing = hitNode;
     isDrawing = true;
   } else if (hitNode !== undefined) {
-    console.log(hitInd);
     draggingNode = hitNode;
     dragNodeInd = hitInd;
     isDragging = true;
-  }
-}
-
-function mouseReleased() {
-  if (isDrawing) {
-    let { hitNode, hitInd, hitEdge } = firstNodeHit();
-    
-    if (hitNode !== undefined) {
-      edges.push({head: headNodeDrawing, tail: hitNode});
-      headNodeDrawing = null;
-    }
-  } else {
-    draggingNode = null;
-    dragNodeInd = null;
   }
 }
 
@@ -93,6 +82,21 @@ function mouseDragged() {
   if (isDragging) {
     vertices[dragNodeInd].x = mouseX;
     vertices[dragNodeInd].y = mouseY;
+  }
+}
+
+function mouseReleased() {
+  if (isDrawing) {
+    let { hitNode, hitInd, hitEdge } = firstNodeHit();
+    
+    if (hitNode !== undefined && hitNode !== headNodeDrawing) {
+      edges.push({head: headNodeDrawing, tail: hitNode});
+    }
+
+    headNodeDrawing = null;
+  } else {
+    draggingNode = null;
+    dragNodeInd = null;
   }
 }
 
@@ -110,7 +114,7 @@ function drawNode(node) {
   text(node.l, node.x-10, node.y+5);
 }
 
-function drawEdge(edge) {
+function drawEdge(edge, beingDrawn = false) {
   strokeWeight(edgeThickness);
 
   let x1 = edge.head.x;
@@ -118,13 +122,20 @@ function drawEdge(edge) {
   let x2 = edge.tail.x;
   let y2 = edge.tail.y;
   
-  line(x1, y1, x2, y2);
-
   let d = dist(x1, y1, x2, y2);
+  let vec = createVector(x2-x1,y2-y1);
+  let mag = sqrt(vec.x*vec.x + vec.y*vec.y);
+  let unit = createVector(vec.x/mag, vec.y/mag);;
+
+  let headEdge = createVector(x1 + vertexOuterRadius*unit.x, y1 + vertexOuterRadius*unit.y);
+  let tailEdge = beingDrawn ? createVector(x2,y2) : 
+    createVector(x2 - vertexOuterRadius*unit.x, y2 - vertexOuterRadius*unit.y);
+  
+  line(headEdge.x, headEdge.y, tailEdge.x, tailEdge.y);
 
   push();
-  translate((x1 + x2) / 2, (y1 + y2) / 2);
-  rotate(atan2(y2 - y1, x2 - x1));
+  translate((headEdge.x + tailEdge.x) / 2, (headEdge.y + tailEdge.y) / 2);
+  rotate(atan2(tailEdge.y - headEdge.y, tailEdge.x - headEdge.x));
   pop();
 }
 
