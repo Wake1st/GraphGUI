@@ -3,12 +3,15 @@ let edges = [];
 
 let vertexOuterRadius = 80;
 let vertexInnerRadius = 60;
+let vertexDiameter = vertexOuterRadius + vertexInnerRadius;
 let vertexEdgeThickness = vertexOuterRadius - vertexInnerRadius;
 let edgeThickness = 10;
 
 let headNodeDrawing;
 let tailNodeDrawing;
-let drawingEdge = false;
+
+let isDrawing = false;
+let isDragging = false;
 
 let draggingNode;
 let dragNodeInd;
@@ -20,7 +23,7 @@ function setup() {
 function draw() {
   background('rgba(40,250,240,0.4)');
   
-  if (drawingEdge) {
+  if (isDrawing) {
     strokeWeight(edgeThickness);
 
     let x1 = headNodeDrawing.x;
@@ -44,8 +47,11 @@ function draw() {
 }
 
 function mouseClicked() {
-  if (drawingEdge) {
-    drawingEdge = false;
+  console.log(isDrawing);
+
+  if (isDrawing || isDragging) {
+    isDrawing = false;
+    isDragging = false;
   } else {
     vertices.push({
       l: 'L-' + vertices.length, 
@@ -57,30 +63,34 @@ function mouseClicked() {
 
 function mousePressed() {
   let { hitNode, hitInd, hitEdge } = firstNodeHit();
-  console.log(hitNode, hitInd, hitEdge);
   
   if (hitEdge) {
+    headNodeDrawing = hitNode;
+    isDrawing = true;
+  } else if (hitNode !== undefined) {
+    console.log(hitInd);
     draggingNode = hitNode;
     dragNodeInd = hitInd;
-  } else if (hitNode !== undefined) {
-    headNodeDrawing = hitNode;
-    drawingEdge = true;
+    isDragging = true;
   }
 }
 
 function mouseReleased() {
-  if (drawingEdge) {
+  if (isDrawing) {
     let { hitNode, hitInd, hitEdge } = firstNodeHit();
     
-    if (hitNode === undefined) {
+    if (hitNode !== undefined) {
       edges.push({head: headNodeDrawing, tail: hitNode});
       headNodeDrawing = null;
     }
+  } else {
+    draggingNode = null;
+    dragNodeInd = null;
   }
 }
 
 function mouseDragged() {
-  if (dragNodeInd !== undefined) {
+  if (isDragging) {
     vertices[dragNodeInd].x = mouseX;
     vertices[dragNodeInd].y = mouseY;
   }
@@ -92,7 +102,7 @@ function drawNode(node) {
   c = color('rgba(100,220,250,0.6)');
   fill(c);
   strokeWeight(vertexEdgeThickness);
-  circle(node.x, node.y, vertexOuterRadius);
+  circle(node.x, node.y, vertexDiameter);
 
   //  write label
   textSize(14);
@@ -119,18 +129,19 @@ function drawEdge(edge) {
 }
 
 function firstNodeHit() {
-  vertices.forEach((node, i) => {
+  var obj = {};
+
+  vertices.some((node, i) => {
     let d = dist(mouseX,mouseY,node.x,node.y);
 
-    console.log(vertexInnerRadius, vertexOuterRadius, d);
     if (vertexInnerRadius > d) {
-      console.log('inner');
-      return { hitNode: node, hitInd: i, hitEdge: false };
+      obj = { hitNode: node, hitInd: i, hitEdge: false };
+      return true;
     } else if (vertexOuterRadius > d) {
-      console.log('outer');
-      return { hitNode: node, hitInd: i, hitEdge: true };
+      obj = { hitNode: node, hitInd: i, hitEdge: true };
+      return true;
     }
   });
 
-  return {undefined, undefined, undefined};
+  return obj;
 }
