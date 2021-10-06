@@ -21,7 +21,7 @@ let dragVertexInd;
 
 
 function setup() {
-  createCanvas(780, 780);
+  createCanvas(780, 640);
 }
 
 function draw() {
