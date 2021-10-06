@@ -1,20 +1,24 @@
+const vertexOuterRadius = 60;
+const vertexInnerRadius = 45;
+const vertexDiameter = vertexOuterRadius + vertexInnerRadius;
+const vertexEdgeThickness = vertexOuterRadius - vertexInnerRadius;
+
+const edgeThickness = 10;
+
+const adjustmentMagnitude = 0.1;
+
 let vertices = [];
 let edges = [];
 
-let vertexOuterRadius = 60;
-let vertexInnerRadius = 45;
-let vertexDiameter = vertexOuterRadius + vertexInnerRadius;
-let vertexEdgeThickness = vertexOuterRadius - vertexInnerRadius;
-let edgeThickness = 10;
-
-let headNodeDrawing;
-let tailNodeDrawing;
+let headVertexDrawing;
+let tailVertexDrawing;
 
 let isDrawing = false;
 let isDragging = false;
 
-let draggingNode;
-let dragNodeInd;
+let draggingVertex;
+let dragVertexInd;
+
 
 function setup() {
   createCanvas(780, 780);
@@ -23,33 +27,20 @@ function setup() {
 function draw() {
   background('rgba(40,250,240,0.4)');
   
+  //  adjust posision if overlapping
+  vertices.forEach(vertex => adjustForVertexOverlap(vertex));
+
+  //  draw any edges being connected
   if (isDrawing) {
     drawEdge({
-      head: { x: headNodeDrawing.x, y: headNodeDrawing.y},
+      head: { x: headVertexDrawing.x, y: headVertexDrawing.y},
       tail: { x: mouseX, y: mouseY}
     }, true);
-
-    // strokeWeight(edgeThickness);
-
-    // let x1 = headNodeDrawing.x;
-    // let y1 = headNodeDrawing.y;
-    // let x2 = mouseX;
-    // let y2 = mouseY;
-    
-    // line(x1, y1, x2, y2);
-
-    // let d = dist(x1, y1, x2, y2);
-
-    // // Let's write d along the line we are drawing!
-    // push();
-    // translate((x1 + x2) / 2, (y1 + y2) / 2);
-    // rotate(atan2(y2 - y1, x2 - x1));
-    // pop();
   }
 
-
+  //  draw the edges and vetices
   edges.forEach(edge => drawEdge(edge));
-  vertices.forEach(node => drawNode(node));
+  vertices.forEach(vertex => drawVertex(vertex));
 }
 
 function mouseClicked() {
@@ -66,52 +57,52 @@ function mouseClicked() {
 }
 
 function mousePressed() {
-  let { hitNode, hitInd, hitEdge } = firstNodeHit();
+  let { hitVertex, hitInd, hitEdge } = checkVertexCollision();
   
   if (hitEdge) {
-    headNodeDrawing = hitNode;
+    headVertexDrawing = hitVertex;
     isDrawing = true;
-  } else if (hitNode !== undefined) {
-    draggingNode = hitNode;
-    dragNodeInd = hitInd;
+  } else if (hitVertex !== undefined) {
+    draggingVertex = hitVertex;
+    dragVertexInd = hitInd;
     isDragging = true;
   }
 }
 
 function mouseDragged() {
   if (isDragging) {
-    vertices[dragNodeInd].x = mouseX;
-    vertices[dragNodeInd].y = mouseY;
+    vertices[dragVertexInd].x = mouseX;
+    vertices[dragVertexInd].y = mouseY;
   }
 }
 
 function mouseReleased() {
   if (isDrawing) {
-    let { hitNode, hitInd, hitEdge } = firstNodeHit();
+    let { hitVertex, hitInd, hitEdge } = checkVertexCollision();
     
-    if (hitNode !== undefined && hitNode !== headNodeDrawing) {
-      edges.push({head: headNodeDrawing, tail: hitNode});
+    if (hitVertex !== undefined && hitVertex !== headVertexDrawing) {
+      edges.push({head: headVertexDrawing, tail: hitVertex});
     }
 
-    headNodeDrawing = null;
+    headVertexDrawing = null;
   } else {
-    draggingNode = null;
-    dragNodeInd = null;
+    draggingVertex = null;
+    dragVertexInd = null;
   }
 }
 
 
-function drawNode(node) {
+function drawVertex(vertex) {
   //  draw circle
   c = color('rgba(100,220,250,0.6)');
   fill(c);
   strokeWeight(vertexEdgeThickness);
-  circle(node.x, node.y, vertexDiameter);
+  circle(vertex.x, vertex.y, vertexDiameter);
 
   //  write label
   textSize(14);
   fill(0, 102, 153);
-  text(node.l, node.x-10, node.y+5);
+  text(vertex.l, vertex.x-10, vertex.y+5);
 }
 
 function drawEdge(edge, beingDrawn = false) {
@@ -122,10 +113,10 @@ function drawEdge(edge, beingDrawn = false) {
   let x2 = edge.tail.x;
   let y2 = edge.tail.y;
   
-  let d = dist(x1, y1, x2, y2);
+  //let d = dist(x1, y1, x2, y2);
   let vec = createVector(x2-x1,y2-y1);
   let mag = sqrt(vec.x*vec.x + vec.y*vec.y);
-  let unit = createVector(vec.x/mag, vec.y/mag);;
+  let unit = createVector(vec.x/mag, vec.y/mag);
 
   let headEdge = createVector(x1 + vertexOuterRadius*unit.x, y1 + vertexOuterRadius*unit.y);
   let tailEdge = beingDrawn ? createVector(x2,y2) : 
@@ -139,20 +130,41 @@ function drawEdge(edge, beingDrawn = false) {
   pop();
 }
 
-function firstNodeHit() {
+function checkVertexCollision() {
   var obj = {};
 
-  vertices.some((node, i) => {
-    let d = dist(mouseX,mouseY,node.x,node.y);
+  vertices.some((vertex, i) => {
+    let d = dist(mouseX,mouseY,vertex.x,vertex.y);
 
     if (vertexInnerRadius > d) {
-      obj = { hitNode: node, hitInd: i, hitEdge: false };
+      obj = { hitVertex: vertex, hitInd: i, hitEdge: false };
       return true;
     } else if (vertexOuterRadius > d) {
-      obj = { hitNode: node, hitInd: i, hitEdge: true };
+      obj = { hitVertex: vertex, hitInd: i, hitEdge: true };
       return true;
     }
   });
 
   return obj;
+}
+
+function adjustForVertexOverlap(parentV) {
+  vertices.forEach((vertex, i) => {
+    let d = dist(parentV.x,parentV.y,vertex.x,vertex.y);
+
+    if (vertexOuterRadius*2 > d) {
+      let x1 = parentV.x;
+      let y1 = parentV.y;
+      let x2 = vertex.x;
+      let y2 = vertex.y;
+      
+      let d = dist(x1, y1, x2, y2);
+      let vec = createVector(x2-x1,y2-y1);
+      let mag = sqrt(vec.x*vec.x + vec.y*vec.y);
+      let unit = createVector(vec.x/mag, vec.y/mag);
+
+      vertex.x += d*unit.x*adjustmentMagnitude;
+      vertex.y += d*unit.y*adjustmentMagnitude;
+    }
+  });
 }
