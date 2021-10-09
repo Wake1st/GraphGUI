@@ -1,3 +1,8 @@
+const graphBufferX = 0;
+const graphBufferY = 0;
+const listBufferX = 800;
+const listBufferY = 0;
+
 const vertexOuterRadius = 60;
 const vertexInnerRadius = 45;
 const vertexDiameter = vertexOuterRadius + vertexInnerRadius;
@@ -7,8 +12,18 @@ const edgeThickness = 10;
 
 const adjustmentMagnitude = 0.1;
 
+const itemWidth = 200;
+const itemHeight = 30;
+const itemNodeR = itemHeight/2;
+
+const itemMargin = 20;
+const itemGap = 8;
+
 let vertices = [];
 let edges = [];
+
+let listVerts = [];
+let listEdges = [];
 
 let headVertexDrawing;
 let tailVertexDrawing;
@@ -19,40 +34,74 @@ let isDragging = false;
 let draggingVertex;
 let dragVertexInd;
 
+let graphBuffer;
+let listBuffer;
+
 
 function setup() {
-  createCanvas(780, 640);
+  //  800 x 400 (double width to make room for each "sub-canvas")
+  createCanvas(1600, 640);
+  //  Create both of your off-screen graphics buffers
+  graphBuffer = createGraphics(780, 640);
+  listBuffer = createGraphics(780, 640);
 }
 
 function draw() {
-  background('rgba(40,250,240,0.4)');
+  // Draw on your buffers however you like
+  drawGraphBuffer();
+  drawListBuffer();
+  // Paint the off-screen buffers onto the main canvas
+  image(graphBuffer, graphBufferX, graphBufferY);
+  image(listBuffer, listBufferX, listBufferY);
+}
+
+
+function drawGraphBuffer() {
+  graphBuffer.background('rgba(40,250,240,0.4)');
   
   //  adjust posision if overlapping
-  vertices.forEach(vertex => adjustForVertexOverlap(vertex));
+  vertices.forEach(vertex => adjustForVertexOverlap(graphBuffer, vertex));
 
   //  draw any edges being connected
   if (isDrawing) {
-    drawEdge({
-      head: { x: headVertexDrawing.x, y: headVertexDrawing.y},
-      tail: { x: mouseX, y: mouseY}
-    }, true);
+    drawEdge(
+      graphBuffer,
+      {
+        head: { x: headVertexDrawing.x, y: headVertexDrawing.y},
+        tail: { x: mouseX, y: mouseY}
+      }, 
+      true);
   }
 
   //  draw the edges and vetices
-  edges.forEach(edge => drawEdge(edge));
-  vertices.forEach(vertex => drawVertex(vertex));
+  edges.forEach(edge => drawEdge(graphBuffer, edge));
+  vertices.forEach(vertex => drawVertex(graphBuffer, vertex));
+  listVerts.forEach((item,i) => drawItem(listBuffer, item, i));
+}
+
+function drawListBuffer() {
+  listBuffer.background('rgba(40,220,250,0.4)');
+
+
 }
 
 function mouseClicked() {
-  if (isDrawing || isDragging) {
-    isDrawing = false;
-    isDragging = false;
-  } else {
-    vertices.push({
-      l: 'L-' + vertices.length, 
-      x: mouseX, 
-      y: mouseY
-    });
+  if (hitBuffer(graphBuffer, mouseX, mouseY, graphBufferX, graphBufferY)) {
+    if (isDrawing || isDragging) {
+      isDrawing = false;
+      isDragging = false;
+    } else {
+      let name = 'V-' + vertices.length;
+      
+      vertices.push({
+        l: name, 
+        x: mouseX, 
+        y: mouseY
+      });
+
+      listVerts.push({ l: name });
+    }
+  } else if (hitBuffer(listBuffer, mouseX, mouseY, listBufferX, listBufferY)) {
   }
 }
 
@@ -91,22 +140,27 @@ function mouseReleased() {
   }
 }
 
-
-function drawVertex(vertex) {
-  //  draw circle
-  c = color('rgba(100,220,250,0.6)');
-  fill(c);
-  strokeWeight(vertexEdgeThickness);
-  circle(vertex.x, vertex.y, vertexDiameter);
-
-  //  write label
-  textSize(14);
-  fill(0, 102, 153);
-  text(vertex.l, vertex.x-10, vertex.y+5);
+function hitBuffer(buffer, x, y, bufferX, bufferY) {
+  return x > bufferX && y > bufferY &&
+    x < buffer.width + bufferX &&
+    y < buffer.height + bufferY;
 }
 
-function drawEdge(edge, beingDrawn = false) {
-  strokeWeight(edgeThickness);
+function drawVertex(buffer, vertex) {
+  //  draw circle
+  c = color('rgba(100,220,250,0.6)');
+  buffer.fill(c);
+  buffer.strokeWeight(vertexEdgeThickness);
+  buffer.circle(vertex.x, vertex.y, vertexDiameter);
+
+  //  write label
+  buffer.textSize(14);
+  buffer.fill(0, 102, 153);
+  buffer.text(vertex.l, vertex.x-10, vertex.y+5);
+}
+
+function drawEdge(buffer, edge, beingDrawn = false) {
+  buffer.strokeWeight(edgeThickness);
 
   let x1 = edge.head.x;
   let y1 = edge.head.y;
@@ -120,14 +174,38 @@ function drawEdge(edge, beingDrawn = false) {
 
   let headEdge = createVector(x1 + vertexOuterRadius*unit.x, y1 + vertexOuterRadius*unit.y);
   let tailEdge = beingDrawn ? createVector(x2,y2) : 
-    createVector(x2 - vertexOuterRadius*unit.x, y2 - vertexOuterRadius*unit.y);
-  
-  line(headEdge.x, headEdge.y, tailEdge.x, tailEdge.y);
+  createVector(x2 - vertexOuterRadius*unit.x, y2 - vertexOuterRadius*unit.y);
 
-  push();
-  translate((headEdge.x + tailEdge.x) / 2, (headEdge.y + tailEdge.y) / 2);
-  rotate(atan2(tailEdge.y - headEdge.y, tailEdge.x - headEdge.x));
-  pop();
+  buffer.line(headEdge.x, headEdge.y, tailEdge.x, tailEdge.y);
+
+  buffer.push();
+  buffer.translate((headEdge.x + tailEdge.x) / 2, (headEdge.y + tailEdge.y) / 2);
+  buffer.rotate(atan2(tailEdge.y - headEdge.y, tailEdge.x - headEdge.x));
+  buffer.pop();
+}
+
+function drawItem(buffer, item, i) {
+  //  set color
+  c = color('rgba(60,240,250,0.6)');
+  buffer.fill(c);
+
+  //  get coords for the item
+  let x = itemMargin;
+  let y = i * (itemHeight + itemGap) + itemGap;
+
+  //  draw circle
+  buffer.strokeWeight(2);
+  buffer.rect(x, y, itemWidth, itemHeight, itemNodeR);
+
+  //  draw circle
+  c = color(0,0,0);
+  buffer.fill(c);
+  buffer.circle(x+itemWidth-itemNodeR, y+(itemHeight/2), itemNodeR*2);
+  
+  //  write label
+  buffer.textSize(14);
+  buffer.fill(0, 160, 120);
+  buffer.text(item.l, x+(itemWidth/2)-10, y+(itemHeight/2)+5);
 }
 
 function checkVertexCollision() {
@@ -148,7 +226,7 @@ function checkVertexCollision() {
   return obj;
 }
 
-function adjustForVertexOverlap(parentV) {
+function adjustForVertexOverlap(buffer, parentV) {
   vertices.forEach((vertex, i) => {
     let d = dist(parentV.x,parentV.y,vertex.x,vertex.y);
 
