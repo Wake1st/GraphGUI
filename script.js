@@ -102,11 +102,18 @@ function mouseClicked() {
       listVerts.push({ l: name });
     }
   } else if (hitBuffer(listBuffer, mouseX, mouseY, listBufferX, listBufferY)) {
+    let { hitItem, hitInd, hitNode } = checkItemHit();
+
+    if (hitNode) {
+
+    } else if (hitItem !== undefined) {
+
+    }
   }
 }
 
 function mousePressed() {
-  let { hitVertex, hitInd, hitEdge } = checkVertexCollision();
+  let { hitVertex, hitInd, hitEdge } = checkVertexHit();
   
   if (hitEdge) {
     headVertexDrawing = hitVertex;
@@ -127,7 +134,7 @@ function mouseDragged() {
 
 function mouseReleased() {
   if (isDrawing) {
-    let { hitVertex, hitInd, hitEdge } = checkVertexCollision();
+    let { hitVertex, hitInd, hitEdge } = checkVertexHit();
     
     if (hitVertex !== undefined && hitVertex !== headVertexDrawing) {
       edges.push({head: headVertexDrawing, tail: hitVertex});
@@ -144,6 +151,10 @@ function hitBuffer(buffer, x, y, bufferX, bufferY) {
   return x > bufferX && y > bufferY &&
     x < buffer.width + bufferX &&
     y < buffer.height + bufferY;
+}
+
+function getItemCoord(i) {
+  return { x: itemMargin, y: i * (itemHeight + itemGap) + itemGap };
 }
 
 function drawVertex(buffer, vertex) {
@@ -186,12 +197,11 @@ function drawEdge(buffer, edge, beingDrawn = false) {
 
 function drawItem(buffer, item, i) {
   //  set color
-  c = color('rgba(60,240,250,0.6)');
+  c = color('rgba(60,240,210,0.6)');
   buffer.fill(c);
 
   //  get coords for the item
-  let x = itemMargin;
-  let y = i * (itemHeight + itemGap) + itemGap;
+  let { x, y } = getItemCoord(i);
 
   //  draw circle
   buffer.strokeWeight(2);
@@ -208,7 +218,7 @@ function drawItem(buffer, item, i) {
   buffer.text(item.l, x+(itemWidth/2)-10, y+(itemHeight/2)+5);
 }
 
-function checkVertexCollision() {
+function checkVertexHit() {
   var obj = {};
 
   vertices.some((vertex, i) => {
@@ -245,4 +255,36 @@ function adjustForVertexOverlap(buffer, parentV) {
       vertex.y += d*unit.y*adjustmentMagnitude;
     }
   });
+}
+
+function checkItemHit() {
+  var obj = {};
+
+  listVerts.some((item, i) => {
+    //  set mouse coords relative to the buffer
+    let mX = mouseX - listBufferX;
+    let mY = mouseY - listBufferY;
+    //  get coords for the item
+    let { x, y } = getItemCoord(i);
+    
+    let hitNode = mY > y &&
+      x + itemWidth - (itemNodeR * 2) < mX &&
+      y + itemHeight > mY && x + itemWidth > mX;
+
+    if (hitNode) {
+      obj = { hitItem: item, hitInd: i, hitNode: true };
+      return true;
+    }
+    
+    let hitBox = mX > x && mY > y &&
+      x + itemWidth - (itemNodeR * 2) > mX &&
+      y + itemHeight > mY;
+       
+    if (hitBox) {
+      obj = { hitItem: item, hitInd: i, hitEdge: false };
+      return true;
+    }
+  });
+
+  return obj;
 }
