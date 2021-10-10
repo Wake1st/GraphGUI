@@ -10,3 +10,17 @@ body {
   /* This centers our sketch vertically. */
   align-items: flex-start;
 }
+
+#focus-item {
+  background-color: #3e95c7;
+  padding: 1em;
+}
+
+#focus-title {
+  margin: 0 auto;
+  width: 90%
+}
+
+#focus-edge-vert {
+  width: 40%;
+}
