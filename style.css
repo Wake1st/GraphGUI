@@ -1,5 +1,5 @@
 body {
-  background-color: #44a8e2;
+  background-color: #50b0e7;
 
   margin: 2em;
   display: flex;
@@ -11,6 +11,11 @@ body {
   align-items: flex-start;
 }
 
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
 #focus-item {
   background-color: #3e95c7;
   padding: 1em;
@@ -18,9 +23,31 @@ body {
 
 #focus-title {
   margin: 0 auto;
-  width: 90%
+  width: 98%
 }
 
-#focus-edge-vert {
-  width: 40%;
+.focus-edge-container {
+  text-align: center;
+  padding: 0.8% 0;
+}
+
+.focus-edge-item {
+  display: inline-block;
+  text-align: center;
+  margin: 0 1.4%;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.focus-edge-vert {
+  background-color: rgb(98, 224, 165); 
+  border: 1px solid blue;    
+  width: 34%;
+}
+
+.btn-cancel {
+  background-color: rgb(214, 16, 49); 
+  border: 1px solid rgb(54, 33, 48);    
+  color: white;
+  width: 10%;
 }
